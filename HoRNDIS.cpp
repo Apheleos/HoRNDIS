@@ -1529,13 +1529,14 @@ bool HoRNDIS::rndisInit() {
 		LOG(V_ERROR, "out of memory?");
 		return false;
 	}
-	
+
+	memset(u.hdr, 0, RNDIS_CMD_BUF_SZ);
 	u.init->msg_type = RNDIS_MSG_INIT;
 	u.init->msg_len = cpu_to_le32(sizeof *u.init);
 	u.init->major_version = cpu_to_le32(1);
 	u.init->minor_version = cpu_to_le32(0);
 	// This is the maximum USB transfer the device is allowed to make to host:
-	u.init->max_transfer_size = IN_BUF_SIZE;
+	u.init->max_transfer_size = cpu_to_le32(IN_BUF_SIZE);
 	rc = rndisCommand(u.hdr, RNDIS_CMD_BUF_SZ);
 	if (rc != kIOReturnSuccess) {
 		LOG(V_ERROR, "INIT not successful?");

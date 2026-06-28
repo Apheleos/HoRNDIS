@@ -404,6 +404,7 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 	{  // Now, find the interfaces:
 		OSIterator *iterator = device->getChildIterator(gIOServicePlane);
 		OSObject *obj = NULL;
+		bool openFailed = false;
 		while(iterator != NULL && (obj = iterator->getNextObject()) != NULL) {
 			IOUSBHostInterface *iface = OSDynamicCast(IOUSBHostInterface, obj);
 			if (iface == NULL) {
@@ -421,7 +422,8 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 					desc->bInterfaceProtocol);
 				if (!iface->open(this)) {
 					LOG(V_ERROR, "Could not open RNDIS control interface");
-					return false;
+					openFailed = true;
+					break;
 				}
 				// Note, we retain AFTER opening the interface, because once
 				// 'fCommInterface' is set, the 'closeUSBInterfaces' would
@@ -433,7 +435,8 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 					desc->bInterfaceProtocol);
 				if (!iface->open(this)) {
 					LOG(V_ERROR, "Could not open RNDIS data interface");
-					return false;
+					openFailed = true;
+					break;
 				}
 				// open before retain, see above:
 				fDataInterface = retainT(iface);
@@ -441,6 +444,9 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 			}
 		}
 		OSSafeReleaseNULL(iterator);
+		if (openFailed) {
+			return false;
+		}
 	}
 
 	// WARNING, it is a WRONG idea to attach 'fDataInterface' as a second

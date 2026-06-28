@@ -1445,7 +1445,7 @@ IOReturn HoRNDIS::rndisCommand(struct rndis_msg_hdr *buf, int buflen) {
 		} else {
 			if (buf->msg_type == RNDIS_MSG_INDICATE) {
 				LOG(V_ERROR, "unsupported: RNDIS_MSG_INDICATE");	
-			} else if (buf->msg_type == RNDIS_MSG_INDICATE) {
+			} else if (buf->msg_type == RNDIS_MSG_KEEPALIVE) {
 				LOG(V_ERROR, "unsupported: RNDIS_MSG_KEEPALIVE");
 			} else {
 				LOG(V_ERROR, "unexpected msg type %08x, msg_len %08x",

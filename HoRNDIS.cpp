@@ -1277,30 +1277,36 @@ void HoRNDIS::receivePacket(void *packet, UInt32 size) {
 		struct rndis_data_hdr *hdr = (struct rndis_data_hdr *)packet;
 		uint32_t msg_len, data_ofs, data_len;
 		
-		if (size <= sizeof(struct rndis_data_hdr)) {
+		if (size < sizeof(struct rndis_data_hdr)) {
 			LOG(V_ERROR, "receivePacket() on too small packet? (size %d)", size);
 			return;
 		}
-		
+
 		msg_len = le32_to_cpu(hdr->msg_len);
 		data_ofs = le32_to_cpu(hdr->data_offset);
 		data_len = le32_to_cpu(hdr->data_len);
-		
+
 		if (hdr->msg_type != RNDIS_MSG_PACKET) { // both are LE, so that's okay
 			LOG(V_ERROR, "non-PACKET over data channel? (msg_type %08x)", hdr->msg_type);
 			return;
 		}
-		
-		if (msg_len > size) {
-			LOG(V_ERROR, "msg_len too big?");
+
+		if (msg_len < sizeof(struct rndis_data_hdr) || msg_len > size) {
+			LOG(V_ERROR, "msg_len out of range?");
 			return;
 		}
-		
-		if ((data_ofs + data_len + 8) > msg_len) {
+
+		if (data_ofs > msg_len - 8 || data_len > msg_len - 8 - data_ofs) {
 			LOG(V_ERROR, "data bigger than msg?");
 			return;
 		}
-	
+
+		if (data_len == 0) {
+			size -= msg_len;
+			packet = (char *)packet + msg_len;
+			continue;
+		}
+
 		m = allocatePacket(data_len);
 		if (!m) {
 			LOG(V_ERROR, "allocatePacket for data_len %d failed", data_len);

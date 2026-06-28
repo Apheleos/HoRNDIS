@@ -9,7 +9,7 @@
     <options customize="never" hostArchitectures="x86_64" require-scripts="false" rootVolumeOnly="true"/>
     <volume-check>
         <allowed-os-versions>
-            <os-version min="10.11" before="26" />
+            <os-version min="10.11" />
         </allowed-os-versions>
     </volume-check>
     <choices-outline>

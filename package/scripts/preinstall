@@ -1,0 +1,22 @@
+#!/bin/sh
+OS_MAJOR=$(sw_vers -productVersion | cut -d. -f1)
+
+CONSOLE_USER=$(stat -f "%Su" /dev/console)
+CONSOLE_UID=$(id -u "$CONSOLE_USER" 2>/dev/null)
+LANG_CODE=$(launchctl asuser "$CONSOLE_UID" defaults read NSGlobalDomain AppleLanguages 2>/dev/null \
+    | grep -o '"[a-z][a-z]' | head -1 | tr -d '"')
+
+if [ "$OS_MAJOR" -ge 26 ]; then
+    if [ "$LANG_CODE" = "fr" ]; then
+        TITLE="Installation impossible"
+        MSG="HoRNDIS n'est pas compatible avec macOS 26 (Tahoe) et les versions ultérieures."
+    else
+        TITLE="Installation failed"
+        MSG="HoRNDIS is not compatible with macOS 26 (Tahoe) or later."
+    fi
+
+    launchctl asuser "$CONSOLE_UID" osascript \
+        -e "display dialog \"$MSG\" with title \"$TITLE\" buttons {\"OK\"} default button \"OK\" with icon stop"
+
+    exit 1
+fi

@@ -4,6 +4,7 @@
  *
  *   Copyright (c) 2012 Joshua Wise.
  *   Copyright (c) 2018 Mikhail Iakhiaev
+ *   Copyright (c) 2026 H. Hugo <https://github.com/Apheleos>
  *
  * IOKit examples from Apple's USBCDCEthernet.cpp; not much of that code remains.
  *

@@ -1,6 +1,27 @@
 #!/bin/sh
-# Cleans-up after the old HoRDNIS installations.
-# These would install into both /Library/Extensions and 
-# /System/Library/Extensions, while we only use the former location.
-sudo rm -rf /System/Library/Extensions/HoRNDIS.kext
-sudo touch /System/Library/Extensions
+OS_MAJOR=$(sw_vers -productVersion | cut -d. -f1)
+
+if [ "$OS_MAJOR" -ge 26 ]; then
+    echo "HoRNDIS is not supported on macOS 26 (Tahoe) or later." >&2
+    exit 1
+fi
+
+if [ "$OS_MAJOR" -eq 10 ]; then
+    OS_MINOR=$(sw_vers -productVersion | cut -d. -f2)
+    if [ "$OS_MINOR" -le 14 ]; then
+        rm -rf /System/Library/Extensions/HoRNDIS.kext
+        touch /System/Library/Extensions
+    fi
+fi
+
+chown -R root:wheel /Library/Extensions/HoRNDIS.kext
+chmod -R 755 /Library/Extensions/HoRNDIS.kext
+
+if command -v kmutil >/dev/null 2>&1; then
+    kmutil install --volume-root / --update-all
+else
+    touch /Library/Extensions
+    kextcache -i /
+fi
+
+kextload /Library/Extensions/HoRNDIS.kext 2>/dev/null || true

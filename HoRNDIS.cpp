@@ -1192,8 +1192,6 @@ void HoRNDIS::callbackExit() {
 void HoRNDIS::dataWriteComplete(void *obj, void *param, IOReturn rc, UInt32 transferred) {
 	HoRNDIS	*me = (HoRNDIS *)obj;
 	unsigned long poolIndx = (unsigned long)param;
-	
-	poolIndx = (unsigned long)param;
 
 	LOG(V_PACKET, "(rc %08x, poolIndx %ld)", rc, poolIndx);
 	// Callback completed. We don't know when/if we launch another one:
@@ -1578,7 +1576,7 @@ bool HoRNDIS::rndisSetPacketFilter(uint32_t filter) {
 	u.hdr = (rndis_msg_hdr *)IOMallocAligned(RNDIS_CMD_BUF_SZ, sizeof(void *));
 	if (!u.hdr) {
 		LOG(V_ERROR, "out of memory?");
-		return false;;
+		return false;
 	}
 	
 	memset(u.set, 0, sizeof *u.set);

@@ -179,7 +179,7 @@ static inline bool isCDCDataInterface(const InterfaceDescriptor *idesc) {
 
 bool HoRNDIS::init(OSDictionary *properties) {
 	extern kmod_info_t kmod_info;  // Getting the version from generated file.
-	LOG(V_NOTE, "HoRNDIS tethering driver for Mac OS X, %s", kmod_info.version);
+	LOG(V_NOTE, "HoRNDIS tethering driver for macOS, %s", kmod_info.version);
 	
 	if (super::init(properties) == false) {
 		LOG(V_ERROR, "initialize superclass failed");
@@ -188,8 +188,8 @@ bool HoRNDIS::init(OSDictionary *properties) {
 
 	LOG(V_PTR, "PTR: I am: %p", this);
 	
-	fNetworkInterface = NULL;
-	fpNetStats = NULL;
+	fNetworkInterface = nullptr;
+	fpNetStats = nullptr;
 
 	fReadyToTransfer = false;
 	fNetifEnabled = false;
@@ -201,19 +201,19 @@ bool HoRNDIS::init(OSDictionary *properties) {
 
 	fCallbackCount = 0;
 
-	fCommInterface = NULL;
-	fDataInterface = NULL;
+	fCommInterface = nullptr;
+	fDataInterface = nullptr;
 	
-	fInPipe = NULL;
-	fOutPipe = NULL;
+	fInPipe = nullptr;
+	fOutPipe = nullptr;
 
 	numFreeOutBufs = 0;
 	for (int i = 0; i < N_OUT_BUFS; i++) {
-		outbufs[i].mdp = NULL;
+		outbufs[i].mdp = nullptr;
 		outbufStack[i] = i;  // Value does not matter here.
 	}
 	for (int i = 0 ; i < N_IN_BUFS; i++) {
-		inbufs[i].mdp = NULL;
+		inbufs[i].mdp = nullptr;
 	}
 
 	rndisXid = 1;
@@ -357,7 +357,7 @@ bool HoRNDIS::willTerminate(IOService *provider, IOOptionBits options) {
 void HoRNDIS::stop(IOService *provider) {
 	LOG(V_DEBUG, ">");
 	
-	OSSafeReleaseNULL(fNetworkInterface);
+	OSSafeReleasenullptr(fNetworkInterface);
 	
 	closeUSBInterfaces();  // Just in case - supposed to be closed by now.
 
@@ -387,7 +387,7 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 		}
 	} else {
 		IOUSBHostInterface *iface = OSDynamicCast(IOUSBHostInterface, provider);
-		if (iface == NULL) {
+		if (iface == nullptr) {
 			LOG(V_ERROR, "start: BUG unexpected provider class");
 			return false;
 		}
@@ -403,11 +403,11 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 
 	{  // Now, find the interfaces:
 		OSIterator *iterator = device->getChildIterator(gIOServicePlane);
-		OSObject *obj = NULL;
+		OSObject *obj = nullptr;
 		bool openFailed = false;
-		while(iterator != NULL && (obj = iterator->getNextObject()) != NULL) {
+		while(iterator != nullptr && (obj = iterator->getNextObject()) != nullptr) {
 			IOUSBHostInterface *iface = OSDynamicCast(IOUSBHostInterface, obj);
-			if (iface == NULL) {
+			if (iface == nullptr) {
 				continue;
 			}
 			if (iface->getConfigurationDescriptor()->bConfigurationValue !=
@@ -443,7 +443,7 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 				break;  // We should be done by now.
 			}
 		}
-		OSSafeReleaseNULL(iterator);
+		OSSafeReleasenullptr(iterator);
 		if (openFailed) {
 			return false;
 		}
@@ -460,7 +460,7 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 	}
 	
 	{  // Get the pipes for the data interface:
-		const EndpointDescriptor *candidate = NULL;
+		const EndpointDescriptor *candidate = nullptr;
 		const InterfaceDescriptor *intDesc = fDataInterface->getInterfaceDescriptor();
 		const ConfigurationDescriptor *confDesc = fDataInterface->getConfigurationDescriptor();
 		if (intDesc->bNumEndpoints != 2) {
@@ -468,16 +468,16 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 			return false;
 		}
 		while((candidate = StandardUSB::getNextEndpointDescriptor(
-					confDesc, intDesc, candidate)) != NULL) {
+					confDesc, intDesc, candidate)) != nullptr) {
 			const bool isEPIn =
 				(candidate->bEndpointAddress & kEndpointDescriptorDirection) != 0;
 			IOUSBHostPipe *&pipe = isEPIn ? fInPipe : fOutPipe;
-			if (pipe == NULL) {
+			if (pipe == nullptr) {
 				// Note, 'copyPipe' already performs 'retain': must not call it again.
 				pipe = fDataInterface->copyPipe(candidate->bEndpointAddress);
 			}
 		}
-		if (fInPipe == NULL || fOutPipe == NULL) {
+		if (fInPipe == nullptr || fOutPipe == nullptr) {
 			LOG(V_ERROR, "Could not init IN/OUT pipes in the Data Interface");
 			return false;
 		}
@@ -496,10 +496,10 @@ void HoRNDIS::closeUSBInterfaces() {
 		fCommInterface->close(this);
 	}
 
-	OSSafeReleaseNULL(fInPipe);
-	OSSafeReleaseNULL(fOutPipe);
-	OSSafeReleaseNULL(fDataInterface);
-	OSSafeReleaseNULL(fCommInterface);  // First one to open, last one to die.
+	OSSafeReleasenullptr(fInPipe);
+	OSSafeReleasenullptr(fOutPipe);
+	OSSafeReleasenullptr(fDataInterface);
+	OSSafeReleasenullptr(fCommInterface);  // First one to open, last one to die.
 }
 
 IOService *HoRNDIS::probe(IOService *provider, SInt32 *score) {
@@ -512,9 +512,9 @@ IOService *HoRNDIS::probe(IOService *provider, SInt32 *score) {
 	}
 	
 	IOUSBHostInterface *controlIf = OSDynamicCast(IOUSBHostInterface, provider);
- 	if (controlIf == NULL) {
+ 	if (controlIf == nullptr) {
 		LOG(V_ERROR, "unexpected provider class (wrong Info.plist)");
-		return NULL;
+		return nullptr;
 	}
 
 	const InterfaceDescriptor *desc = controlIf->getInterfaceDescriptor();
@@ -524,7 +524,7 @@ IOService *HoRNDIS::probe(IOService *provider, SInt32 *score) {
 		desc->bInterfaceProtocol);
 	if (!isRNDISControlInterface(controlIf->getInterfaceDescriptor())) {
 		LOG(V_ERROR, "not RNDIS control interface (wrong Info.plist)");
-		return NULL;
+		return nullptr;
 	}
 
 	const ConfigurationDescriptor *configDesc =
@@ -535,7 +535,7 @@ IOService *HoRNDIS::probe(IOService *provider, SInt32 *score) {
 		(dataDesc->bInterfaceNumber == desc->bInterfaceNumber + 1);
 	if (!match) {
 		LOG(V_DEBUG, "Could not find CDC data interface right after control");
-		return NULL;
+		return nullptr;
 	}
 	fProbeConfigVal = configDesc->bConfigurationValue;
 	fProbeCommIfNum = desc->bInterfaceNumber;
@@ -552,14 +552,14 @@ IOService *HoRNDIS::probeDevice(IOUSBHostDevice *device, SInt32 *score) {
 	for (int i = 0; i < desc->bNumConfigurations; i++) {
 		const ConfigurationDescriptor *configDesc =
 			device->getConfigurationDescriptor(i);
-		if (configDesc == NULL) {
+		if (configDesc == nullptr) {
 			LOG(V_ERROR, "Cannot get device's configuration descriptor");
-			return NULL;
+			return nullptr;
 		}
 		int controlIfNum = INT16_MAX;  // Definitely invalid interface number.
 		bool foundData = false;
-		const InterfaceDescriptor *intDesc = NULL;
-		while((intDesc = StandardUSB::getNextInterfaceDescriptor(configDesc, intDesc)) != NULL) {
+		const InterfaceDescriptor *intDesc = nullptr;
+		while((intDesc = StandardUSB::getNextInterfaceDescriptor(configDesc, intDesc)) != nullptr) {
 			// If this is a device-level match, check for the control interface:
 			if (isRNDISControlInterface(intDesc)) {  // Just check them all.
 				controlIfNum = intDesc->bInterfaceNumber;
@@ -587,7 +587,7 @@ IOService *HoRNDIS::probeDevice(IOUSBHostDevice *device, SInt32 *score) {
 	// Did not find any interfaces we can use:
 	LOG(V_DEBUG, "The device '%s' does not contain the required interfaces: "
 			"it is not for us", device->getName());
-	return NULL;
+	return nullptr;
 }
 
 /***** Ethernet interface bits *****/
@@ -627,7 +627,7 @@ IONetworkInterface *HoRNDIS::createInterface() {
 	HoRNDISInterface *netif = new HoRNDISInterface;
 	
 	if (!netif) {
-		return NULL;
+		return nullptr;
 	}
 
 	int mtuLimit = maxOutTransferSize
@@ -636,7 +636,7 @@ IONetworkInterface *HoRNDIS::createInterface() {
 
 	if (!netif->init(this, min(ETHERNET_MTU, mtuLimit))) {
 		netif->release();
-		return NULL;
+		return nullptr;
 	}
 	
 	return netif;
@@ -853,11 +853,11 @@ void HoRNDIS::disableImpl() {
 	// If USB interfaces are still up, abort the reader and writer:
 	if (fInPipe) {
 		fInPipe->abort(IOUSBHostIOSource::kAbortSynchronous,
-			kIOReturnAborted, NULL);
+			kIOReturnAborted, nullptr);
 	}
 	if (fOutPipe) {
 		fOutPipe->abort(IOUSBHostIOSource::kAbortSynchronous,
-			kIOReturnAborted, NULL);
+			kIOReturnAborted, nullptr);
 	}
 	// Make sure all the callbacks have exited:
 	LOG(V_DEBUG, "Callback count: %d. If not zero, delaying ...",
@@ -878,7 +878,7 @@ bool HoRNDIS::createMediumTables(const IONetworkMedium **primary) {
 	IONetworkMedium	*medium;
 	
 	OSDictionary *mediumDict = OSDictionary::withCapacity(1);
-	if (mediumDict == NULL) {
+	if (mediumDict == nullptr) {
 		LOG(V_ERROR, "Cannot allocate OSDictionary");
 		return false;
 	}
@@ -938,13 +938,13 @@ void HoRNDIS::releaseResources() {
 
 	fReadyToTransfer = false;  // No transfers without buffers.
 	for (int i = 0; i < N_OUT_BUFS; i++) {
-		OSSafeReleaseNULL(outbufs[i].mdp);
+		OSSafeReleasenullptr(outbufs[i].mdp);
 		outbufStack[i] = i;
 	}
 	numFreeOutBufs = 0;
 
 	for (int i = 0; i < N_IN_BUFS; i++) {
-		OSSafeReleaseNULL(inbufs[i].mdp);
+		OSSafeReleasenullptr(inbufs[i].mdp);
 	}
 }
 
@@ -1146,12 +1146,12 @@ UInt32 HoRNDIS::outputPacket(mbuf_t packet, void *param) {
 	mbuf_copydata(packet, 0, pktlen, hdr + 1);
 	
 	freePacket(packet);
-	packet = NULL;
+	packet = nullptr;
 	
 	// Now, fire it off!
 	IOUSBHostCompletion *const comp = &outbufs[poolIndx].comp;
 	comp->owner     = this;
-	comp->parameter = (void *)(uintptr_t)poolIndx;
+	comp->parameter = reinterpret_cast<void *>(poolIndx);
 	comp->action    = dataWriteComplete;
 	
 	ior = robustIO(fOutPipe, &outbufs[poolIndx], transmitLength);
@@ -1190,8 +1190,8 @@ void HoRNDIS::callbackExit() {
 }
 
 void HoRNDIS::dataWriteComplete(void *obj, void *param, IOReturn rc, UInt32 transferred) {
-	HoRNDIS	*me = (HoRNDIS *)obj;
-	unsigned long poolIndx = (unsigned long)param;
+	HoRNDIS	*me = static_cast<HoRNDIS *>(obj);
+	unsigned long poolIndx = reinterpret_cast<unsigned long>(param);
 
 	LOG(V_PACKET, "(rc %08x, poolIndx %ld)", rc, poolIndx);
 	// Callback completed. We don't know when/if we launch another one:
@@ -1228,8 +1228,8 @@ void HoRNDIS::dataWriteComplete(void *obj, void *param, IOReturn rc, UInt32 tran
 
 /***** Packet receive logic *****/
 void HoRNDIS::dataReadComplete(void *obj, void *param, IOReturn rc, UInt32 transferred) {
-	HoRNDIS	*me = (HoRNDIS *)obj;
-	pipebuf_t *inbuf = (pipebuf_t *)param;
+	HoRNDIS	*me = static_cast<HoRNDIS *>(obj);
+	pipebuf_t *inbuf = static_cast<pipebuf_t *>(param);
 	IOReturn ior;
 
 	// Stop conditions. Not separating them out, since reacting to individual
@@ -1301,7 +1301,7 @@ void HoRNDIS::receivePacket(void *packet, UInt32 size) {
 
 		if (data_len == 0) {
 			size -= msg_len;
-			packet = (char *)packet + msg_len;
+			packet = static_cast<const char *>(packet) + msg_len;
 			continue;
 		}
 
@@ -1313,7 +1313,7 @@ void HoRNDIS::receivePacket(void *packet, UInt32 size) {
 		}
 		LOG(V_PTR, "PTR: mbuf: %p", m);
 		
-		rv = mbuf_copyback(m, 0, data_len, (char *)packet + data_ofs + 8, MBUF_WAITOK);
+		rv = mbuf_copyback(m, 0, data_len, static_cast<const char *>(packet) + data_ofs + 8, MBUF_WAITOK);
 		if (rv) {
 			LOG(V_ERROR, "mbuf_copyback failed, rv %08x", rv);
 			fpNetStats->inputErrors++;
@@ -1326,7 +1326,7 @@ void HoRNDIS::receivePacket(void *packet, UInt32 size) {
 		fpNetStats->inputPackets++;
 		
 		size -= msg_len;
-		packet = (char *)packet + msg_len;
+		packet = static_cast<const char *>(packet) + msg_len;
 	}
 }
 
@@ -1336,7 +1336,7 @@ void HoRNDIS::receivePacket(void *packet, UInt32 size) {
 IOReturn HoRNDIS::rndisCommand(struct rndis_msg_hdr *buf, int buflen) {
 	int rc = kIOReturnSuccess;
 	if (!fCommInterface) {  // Safety: make sure 'fCommInterface' is valid.
-		LOG(V_ERROR, "fCommInterface is NULL, bailing out");
+		LOG(V_ERROR, "fCommInterface is nullptr, bailing out");
 		return kIOReturnError;
 	}
 	const uint8_t ifNum = fCommInterface->getInterfaceDescriptor()->bInterfaceNumber;
@@ -1542,7 +1542,7 @@ bool HoRNDIS::rndisInit() {
 		return false;
 	}
 
-	if (fCommInterface) {  // Safety: don't accesss 'fCommInterface if NULL.
+	if (fCommInterface) {  // Safety: don't accesss 'fCommInterface if nullptr.
 		LOG(V_NOTE, "'%s': ver=%d.%d, max_packets_per_transfer=%d, "
 			"max_transfer_size=%d, packet_alignment=2^%d",
 			fCommInterface->getDevice()->getName(),

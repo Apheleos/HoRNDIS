@@ -1,39 +1,66 @@
-# HoRNDIS(the USB tethering driver for Mac OS X)
+# HoRNDIS — Android USB tethering driver for Mac OS X and macOS
 
-**HoRNDIS** (pronounce: *"horrendous"*) is a driver for Mac OS X that allows you to use your Android phone's native [USB tethering](http://en.wikipedia.org/wiki/Tethering) mode to get Internet access.
+**HoRNDIS** (pronounce: *"horrendous"*) is a driver for Mac OS X and macOS that allows you to use your Android phone's native [USB tethering](http://en.wikipedia.org/wiki/Tethering) mode to get Internet access. Intel only.
 
-For more information, [visit the home page for HoRNDIS on my site](http://www.joshuawise.com/horndis).
+> **Note:** On macOS 11 (Big Sur) and later, HoRNDIS requires disabling kext signing in SIP. See [SIP configuration](#sip-configuration) below.
+
+## Supported versions
+
+| Version | Name |
+|---|---|
+| OS X 10.11 | El Capitan |
+| OS X 10.12 | Sierra |
+| OS X 10.13 | High Sierra |
+| OS X 10.14 | Mojave |
+| OS X 10.15 | Catalina |
+| macOS 11 | Big Sur |
+| macOS 12 | Monterey |
+| macOS 13 | Ventura |
+| macOS 14 | Sonoma |
+| macOS 15 | Sequoia |
+
+⚠️ macOS 26 (Tahoe) and Apple Silicon are not supported.
+
+## SIP configuration
+
+*Required for macOS 11 and later only.*
+
+Since macOS Big Sur (11), Apple requires kexts to be signed with a certificate that is no longer issued to new developers. To load HoRNDIS, kext signing must be disabled in SIP:
+
+1. Shut down your Mac
+2. Boot into Recovery Mode (hold **Cmd+R** on Intel Macs)
+3. Open **Utilities → Terminal** and run:
+   ```sh
+   csrutil enable --without kext
+   ```
+4. Restart
 
 ## Installation
 
-### From Source/Binary
-
-* Get the installation package ([Download](http://www.joshuawise.com/horndis) or [Build](#building-the-source) the installation package from source yourself)
-* Run the installation package
-
-### From Homebrew
-
-```sh
-brew cask install horndis
-sudo kextload /Library/Extensions/HoRNDIS.kext
-```
+* Download the `.pkg` from the [Releases](../../releases) page and run the installer
+* If macOS blocks the extension: go to **System Settings → Privacy & Security** and click **Allow**
 
 ## Configuration
 
-* Assuming that the installation proceeds without errors, after it completes, connect your phone to your Mac by USB.
-* Enter the settings menu on your phone.
-* In the connections section, below Wi-Fi and Bluetooth:
-  * Select "More..."
-  * Select "Tethering & portable hotspot"
-* Check the "USB tethering" box. It should flash once, and then become solidly checked.
+* Connect your phone to your Mac by USB
+* On your Android phone, open **Settings** and navigate to the network or hotspot section (the exact path varies by manufacturer and Android version)
+* Enable **USB tethering**
+* The connection should appear automatically in your Mac's network settings
 
 ## Uninstallation
 
-* Delete the `HoRNDIS.kext` under `/System/Library/Extensions` and `/Library/Extensions` folder
-* Restart your computer
+```sh
+sudo kextunload /Library/Extensions/HoRNDIS.kext
+sudo rm -rf /Library/Extensions/HoRNDIS.kext
+```
 
 ## Building the source
 
 * `git clone` the repository
-* Simply running xcodebuild in the checkout directory should be sufficient to build the kext.
-* If you wish to package it up, you can run `make` to assemble the package in the build/ directory
+* Run `make` to build and package (requires Xcode)
+
+## Credits
+
+* **Joshua Wise** (2012)
+* **Mikhail Iakhiaev** (2018)
+* **H. Hugo** ([Apheleos](https://github.com/Apheleos)) (2026)

@@ -1499,7 +1499,7 @@ int HoRNDIS::rndisQuery(void *buf, uint32_t oid, uint32_t in_len, void **reply, 
 	len = le32_to_cpu(u.get_c->len);
 	LOG(V_DEBUG, "RNDIS query completed");
 	
-	if ((8 + off + len) > RNDIS_CMD_BUF_SZ) {
+	if (off > RNDIS_CMD_BUF_SZ - 8 || len > RNDIS_CMD_BUF_SZ - 8 - off) {
 		goto fmterr;
 	}
 	if (*reply_len != -1 && len != *reply_len) {

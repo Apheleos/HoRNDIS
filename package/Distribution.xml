@@ -4,8 +4,8 @@
   -->
 <installer-gui-script minSpecVersion="2">
     <title>HoRNDIS</title>
-    <welcome file="intro-text.rtf" mime-type="application/rtf" />
-    <conclusion file="post-readme.rtf" mime-type="application/rtf" />
+    <welcome file="welcome.rtf" mime-type="application/rtf" />
+    <conclusion file="conclusion.rtf" mime-type="application/rtf" />
     <options customize="never" hostArchitectures="x86_64" require-scripts="false" rootVolumeOnly="true"/>
     <volume-check>
         <allowed-os-versions>

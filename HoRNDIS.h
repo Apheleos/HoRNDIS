@@ -63,7 +63,6 @@ extern "C"
 //   https://docs.microsoft.com/en-us/windows-hardware/drivers/network/remote-ndis-to-usb-mapping
 
 #define TRANSMIT_QUEUE_SIZE     256
-#define OUT_BUF_SIZE            4096
 
 // Per [MS-RNDIS], description of REMOTE_NDIS_INITIALIZE_MSG:
 //    "MaxTransferSize (4 bytes): ... It SHOULD be set to 0x00004000"
@@ -73,11 +72,18 @@ extern "C"
 // 16K regardless.
 #define IN_BUF_SIZE             16384
 
-#define N_OUT_BUFS              4
+// OUT_BUF_SIZE matches IN_BUF_SIZE to allow multi-PDU output transfers,
+// reducing per-packet USB overhead on USB 3.0.
+#define OUT_BUF_SIZE            16384
+
+// More output buffers to sustain burst throughput on USB 3.0.
+#define N_OUT_BUFS              8
+
 // The N_IN_BUFS value should either be 1 or 2.
 // 2 - double-buffering enabled, 1 - double-buffering disabled: single reader.
 // NOTE: surprisingly, single-buffer overall performs better, probably due to
-// less contention on the USB2 bus, which is half-duplex.
+// less contention on the USB2 bus, which is half-duplex. USB 3.0 is
+// full-duplex, but single-buffer is kept here for stability.
 #define N_IN_BUFS               1
 
 // Maximum payload size in a standard (non-jumbo) Ethernet frame.
@@ -285,7 +291,6 @@ private:
 	// set to false when 'disable' succeeds:
 	bool fNetifEnabled;
 	bool fEnableDisableInProgress;  // Guards against re-entry
-	bool fDataDead;
 
 	// These pass information from 'probe' to 'openUSBInterfaces':
 	uint8_t fProbeConfigVal;
@@ -319,7 +324,7 @@ private:
 	static void dataReadComplete(void *obj, void *param, IOReturn ior, UInt32 transferred);
 
 	bool rndisInit();
-	IOReturn rndisCommand(struct rndis_msg_hdr *buf, int buflen);
+	IOReturn rndisCommand(struct rndis_msg_hdr *buf);
 	int rndisQuery(void *buf, uint32_t oid, uint32_t in_len, void **reply, int *reply_len);
 	bool rndisSetPacketFilter(uint32_t filter);
 

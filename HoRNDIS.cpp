@@ -4,6 +4,7 @@
  *
  *   Copyright (c) 2012 Joshua Wise.
  *   Copyright (c) 2018 Mikhail Iakhiaev
+ *   Copyright (c) 2026 H. Hugo <https://github.com/Apheleos>
  *
  * IOKit examples from Apple's USBCDCEthernet.cpp; not much of that code remains.
  *
@@ -52,7 +53,8 @@
 #else
 	#define DEBUGLEVEL V_NOTE
 #endif
-#define LOG(verbosity, s, ...) do { if (verbosity >= DEBUGLEVEL) IOLog("HoRNDIS: %s: " s "\n", __func__, ##__VA_ARGS__); } while(0)
+
+#define LOG(verbosity, s, ...) do { if ((verbosity) >= DEBUGLEVEL) IOLog("HoRNDIS: %s: " s "\n", __func__, ##__VA_ARGS__); } while(0)
 
 #define super IOEthernetController
 
@@ -194,7 +196,6 @@ bool HoRNDIS::init(OSDictionary *properties) {
 	fReadyToTransfer = false;
 	fNetifEnabled = false;
 	fEnableDisableInProgress = false;
-	fDataDead = false;
 
 	fProbeConfigVal = 0;
 	fProbeCommIfNum = 0;
@@ -357,7 +358,7 @@ bool HoRNDIS::willTerminate(IOService *provider, IOOptionBits options) {
 void HoRNDIS::stop(IOService *provider) {
 	LOG(V_DEBUG, ">");
 	
-	OSSafeReleasenullptr(fNetworkInterface);
+	OSSafeReleaseNULL(fNetworkInterface);
 	
 	closeUSBInterfaces();  // Just in case - supposed to be closed by now.
 
@@ -443,7 +444,7 @@ bool HoRNDIS::openUSBInterfaces(IOService *provider) {
 				break;  // We should be done by now.
 			}
 		}
-		OSSafeReleasenullptr(iterator);
+		OSSafeReleaseNULL(iterator);
 		if (openFailed) {
 			return false;
 		}
@@ -496,10 +497,10 @@ void HoRNDIS::closeUSBInterfaces() {
 		fCommInterface->close(this);
 	}
 
-	OSSafeReleasenullptr(fInPipe);
-	OSSafeReleasenullptr(fOutPipe);
-	OSSafeReleasenullptr(fDataInterface);
-	OSSafeReleasenullptr(fCommInterface);  // First one to open, last one to die.
+	OSSafeReleaseNULL(fInPipe);
+	OSSafeReleaseNULL(fOutPipe);
+	OSSafeReleaseNULL(fDataInterface);
+	OSSafeReleaseNULL(fCommInterface);  // First one to open, last one to die.
 }
 
 IOService *HoRNDIS::probe(IOService *provider, SInt32 *score) {
@@ -938,13 +939,13 @@ void HoRNDIS::releaseResources() {
 
 	fReadyToTransfer = false;  // No transfers without buffers.
 	for (int i = 0; i < N_OUT_BUFS; i++) {
-		OSSafeReleasenullptr(outbufs[i].mdp);
+		OSSafeReleaseNULL(outbufs[i].mdp);
 		outbufStack[i] = i;
 	}
 	numFreeOutBufs = 0;
 
 	for (int i = 0; i < N_IN_BUFS; i++) {
-		OSSafeReleasenullptr(inbufs[i].mdp);
+		OSSafeReleaseNULL(inbufs[i].mdp);
 	}
 }
 
@@ -1020,7 +1021,6 @@ IOReturn HoRNDIS::selectMedium(const IONetworkMedium *medium) {
 
 IOReturn HoRNDIS::getHardwareAddress(IOEthernetAddress *ea) {
 	LOG(V_DEBUG, ">");
-	UInt32	  i;
 	void *buf;
 	unsigned char *bp;
 	int rlen = -1;
@@ -1034,7 +1034,7 @@ IOReturn HoRNDIS::getHardwareAddress(IOEthernetAddress *ea) {
 	// WARNING: Android devices may randomly-generate RNDIS MAC address.
 	// The function may return different results for the same device.
 
-	rv = rndisQuery(buf, OID_802_3_PERMANENT_ADDRESS, 48, (void **) &bp, &rlen);
+	rv = rndisQuery(buf, OID_802_3_PERMANENT_ADDRESS, 0, (void **) &bp, &rlen);
 	if (rv < 0) {
 		LOG(V_ERROR, "getHardwareAddress OID failed?");
 		IOFreeAligned(buf, RNDIS_CMD_BUF_SZ);
@@ -1044,9 +1044,7 @@ IOReturn HoRNDIS::getHardwareAddress(IOEthernetAddress *ea) {
 	      bp[0], bp[1], bp[2], bp[3], bp[4], bp[5],
 	      rlen);
 	
-	for (i=0; i<6; i++) {
-		ea->bytes[i] = bp[i];
-	}
+	memcpy(ea->bytes, bp, sizeof(ea->bytes));
 	
 	IOFreeAligned(buf, RNDIS_CMD_BUF_SZ);
 	return kIOReturnSuccess;
@@ -1258,7 +1256,6 @@ void HoRNDIS::dataReadComplete(void *obj, void *param, IOReturn rc, UInt32 trans
 
 	LOG(V_ERROR, "READER STOPPED: USB failure trying to read: %08x", ior);
 	me->callbackExit();
-	me->fDataDead = true;
 }
 
 /*!
@@ -1301,7 +1298,7 @@ void HoRNDIS::receivePacket(void *packet, UInt32 size) {
 
 		if (data_len == 0) {
 			size -= msg_len;
-			packet = static_cast<const char *>(packet) + msg_len;
+			packet = static_cast<char *>(packet) + msg_len;
 			continue;
 		}
 
@@ -1326,14 +1323,14 @@ void HoRNDIS::receivePacket(void *packet, UInt32 size) {
 		fpNetStats->inputPackets++;
 		
 		size -= msg_len;
-		packet = static_cast<const char *>(packet) + msg_len;
+		packet = static_cast<char *>(packet) + msg_len;
 	}
 }
 
 
 /***** RNDIS command logic *****/
 
-IOReturn HoRNDIS::rndisCommand(struct rndis_msg_hdr *buf, int buflen) {
+IOReturn HoRNDIS::rndisCommand(struct rndis_msg_hdr *buf) {
 	int rc = kIOReturnSuccess;
 	if (!fCommInterface) {  // Safety: make sure 'fCommInterface' is valid.
 		LOG(V_ERROR, "fCommInterface is nullptr, bailing out");
@@ -1487,7 +1484,7 @@ int HoRNDIS::rndisQuery(void *buf, uint32_t oid, uint32_t in_len, void **reply, 
 	u.get->len = cpu_to_le32(in_len);
 	u.get->offset = cpu_to_le32(20);
 	
-	rc = rndisCommand(u.hdr, RNDIS_CMD_BUF_SZ);
+	rc = rndisCommand(u.hdr);
 	if (rc != kIOReturnSuccess) {
 		LOG(V_ERROR, "RNDIS_MSG_QUERY failure? %08x", rc);
 		return rc;
@@ -1535,7 +1532,7 @@ bool HoRNDIS::rndisInit() {
 	u.init->minor_version = cpu_to_le32(0);
 	// This is the maximum USB transfer the device is allowed to make to host:
 	u.init->max_transfer_size = cpu_to_le32(IN_BUF_SIZE);
-	rc = rndisCommand(u.hdr, RNDIS_CMD_BUF_SZ);
+	rc = rndisCommand(u.hdr);
 	if (rc != kIOReturnSuccess) {
 		LOG(V_ERROR, "INIT not successful?");
 		IOFreeAligned(u.hdr, RNDIS_CMD_BUF_SZ);
@@ -1587,7 +1584,7 @@ bool HoRNDIS::rndisSetPacketFilter(uint32_t filter) {
 	u.set->offset = cpu_to_le32((sizeof *u.set) - 8);
 	*(uint32_t *)(u.set + 1) = filter;
 	
-	rc = rndisCommand(u.hdr, RNDIS_CMD_BUF_SZ);
+	rc = rndisCommand(u.hdr);
 	if (rc != kIOReturnSuccess) {
 		LOG(V_ERROR, "SET not successful?");
 		IOFreeAligned(u.hdr, RNDIS_CMD_BUF_SZ);
